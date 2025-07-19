@@ -29,7 +29,13 @@ services:
         constraints:
           - node.role == manager
     networks:
-      - sso-network
+      sso-network:
+        aliases:
+          - dex.local
+          - grafana.local
+          - forgejo.local
+          - prometheus.local
+          - alertmanager.local
 
   # PostgreSQL Database
   postgres:

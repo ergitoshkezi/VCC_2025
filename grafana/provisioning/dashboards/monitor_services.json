@@ -163,7 +163,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(container_memory_usage_bytes{container_label_org_label_schema_group=\"monitoring\"})",
+          "expr": "sum(container_memory_usage_bytes{container_label_com_docker_stack_namespace=\"sso\"})",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -402,20 +402,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (name) (rate(container_cpu_user_seconds_total{container_label_org_label_schema_group=\"monitoring\"}[1m]) * 100  / scalar(count(node_cpu{mode=\"user\"})))",
-          "format": "time_series",
-          "hide": true,
-          "intervalFactor": 10,
-          "legendFormat": "{{ name }}",
-          "refId": "A",
-          "step": 10
-        },
-        {
-          "expr": "sum by (name) (rate(container_cpu_user_seconds_total{container_label_org_label_schema_group=\"monitoring\"}[1m]) * 100  / scalar(count(node_cpu_seconds_total{mode=\"user\"})))",
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\".+\"}[5m]) * 100)",
           "format": "time_series",
           "intervalFactor": 10,
           "legendFormat": "{{ name }}",
-          "refId": "B"
+          "refId": "A"
         }
       ],
       "thresholds": [],
@@ -502,7 +493,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (name) (container_memory_usage_bytes{container_label_org_label_schema_group=\"monitoring\"})",
+          "expr": "sum by (name) (container_memory_usage_bytes{container_label_com_docker_stack_namespace=\"sso\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 10,
@@ -596,14 +587,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(ALERTS{alertstate=\"firing\"}) by (alertname)",
+          "expr": "up{job=\"prometheus\"} or vector(0)",
           "format": "time_series",
           "interval": "30s",
           "intervalFactor": 1,
-          "legendFormat": "{{ alertname }}",
-          "metric": "container_memory_usage_bytes",
-          "refId": "A",
-          "step": 10
+          "legendFormat": "Prometheus Status",
+          "refId": "A"
         }
       ],
       "thresholds": [],
@@ -2461,19 +2450,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(prometheus_tsdb_retention_cutoffs_total[10m])",
+          "expr": "prometheus_tsdb_blocks_loaded",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Retention Cutoffs",
-          "metric": "last",
-          "refId": "A",
-          "step": 10
+          "legendFormat": "TSDB Blocks",
+          "refId": "A"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Retention Cutoffs",
+      "title": "TSDB Blocks",
       "tooltip": {
         "msResolution": false,
         "shared": true,
