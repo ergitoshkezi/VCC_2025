@@ -46,7 +46,8 @@ services:
       POSTGRES_PASSWORD: GVVX0pp3Z4UKo
       POSTGRES_DB: forgejo
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./.data/postgres:/var/lib/postgresql/data
+      - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     networks:
       - sso-network
 
@@ -75,8 +76,9 @@ services:
       - FORGEJO__server__ROOT_URL=https://forgejo.local
       - FORGEJO__oauth2__ENABLED=true
       - FORGEJO__oauth2__JWT_SECRET=SIGVJfuwHVRnQ+rrhRoKzw7gExdOZLGVVX0pp3Z4UKo=
+      - FORGEJO__oauth2__SKIP_TLS_VERIFY=true
     volumes:
-      - forgejo_data:/data
+      - ./.data/forgejo:/data
     depends_on:
       - postgres
     networks:
@@ -97,8 +99,15 @@ services:
       - GF_AUTH_SIGNOUT_REDIRECT_URL=https://grafana.local/login
       - GF_SERVER_ROOT_URL=https://grafana.local
       - GF_SERVER_HTTP_PORT=3000
+      - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=GVVX0pp3Z4UKo
+      - GF_DATABASE_SSL_MODE=disable
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./.data/grafana:/var/lib/grafana
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     networks:
@@ -109,7 +118,7 @@ services:
     image: prom/prometheus:v2.48.0
     volumes:
       - ./prometheus/local-prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - ./.data/prometheus:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -123,7 +132,7 @@ services:
     image: prom/alertmanager:v0.26.0
     volumes:
       - ./alertmanager/local-config.yml:/etc/alertmanager/config.yml
-      - alertmanager_data:/alertmanager
+      - ./.data/alertmanager:/alertmanager
     command:
       - "--config.file=/etc/alertmanager/config.yml"
       - "--storage.path=/alertmanager"

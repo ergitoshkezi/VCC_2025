@@ -1,9 +1,15 @@
 issuer: https://dex.local/dex
 
 storage:
-  type: sqlite3
+  type: postgres
   config:
-    file: /tmp/dex.db
+    host: postgres
+    port: 5432
+    database: dex
+    user: dex
+    password: GVVX0pp3Z4UKo
+    ssl:
+      mode: disable
 
 web:
   http: 0.0.0.0:5556
@@ -25,4 +31,4 @@ staticPasswords:
   - email: "admin@local"
     hash: "$2b$10$V.p1duzRnz88aCVOUn2aEuWew.qmnHN42SOyzulJcVxYWqBaVO7oy"
     username: "admin"
-    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466" 
+    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
