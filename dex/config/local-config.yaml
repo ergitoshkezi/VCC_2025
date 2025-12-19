@@ -1,4 +1,4 @@
-issuer: http://dex.local/dex
+issuer: https://dex.local/dex
 
 storage:
   type: sqlite3
@@ -11,12 +11,12 @@ web:
 staticClients:
   - id: grafana
     redirectURIs:
-      - "http://grafana.local/login/generic_oauth"
+      - "https://grafana.local/login/generic_oauth"
     name: Grafana
     secret: grafana_secret
   - id: forgejo
     redirectURIs:
-      - "http://forgejo.local/user/oauth2/dex/callback"
+      - "https://forgejo.local/user/oauth2/dex/callback"
     name: Forgejo
     secret: forgejo_secret
 

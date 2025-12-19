@@ -197,11 +197,11 @@ show_status() {
 show_urls() {
     print_step "Access URLs:"
     echo -e "${GREEN}📋 Service URLs:${NC}"
-    echo "  🔧 Forgejo Git:     http://forgejo.local"
-    echo "  📊 Grafana:         http://grafana.local"
-    echo "  🔐 Dex OIDC:        http://dex.local/dex"
-    echo "  📈 Prometheus:      http://prometheus.local"
-    echo "  🚨 Alertmanager:    http://alertmanager.local"
+    echo "  🔧 Forgejo Git:     https://forgejo.local"
+    echo "  📊 Grafana:         https://grafana.local"
+    echo "  🔐 Dex OIDC:        https://dex.local/dex"
+    echo "  📈 Prometheus:      https://prometheus.local"
+    echo "  🚨 Alertmanager:    https://alertmanager.local"
     echo
     echo -e "${GREEN}🔑 Default Credentials:${NC}"
     echo "  Dex Login:    admin@local / admin123"
@@ -277,6 +277,11 @@ main() {
             check_requirements
             init_swarm
             create_directories
+            # Generate certificates
+            if [ -f "scripts/generate-certs.sh" ]; then
+                print_step "Generating SSL certificates..."
+                bash scripts/generate-certs.sh
+            fi
             setup_hosts
             validate_configs
             deploy_stack
