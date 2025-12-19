@@ -1,0 +1,168 @@
+version: '3.8'
+
+networks:
+  sso-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+  forgejo_data:
+  grafana_data:
+  prometheus_data:
+  alertmanager_data:
+
+services:
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d/local.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/logs:/var/log/nginx
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      sso-network:
+        aliases:
+          - dex.local
+          - grafana.local
+          - forgejo.local
+          - prometheus.local
+          - alertmanager.local
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: forgejo
+      POSTGRES_PASSWORD: GVVX0pp3Z4UKo
+      POSTGRES_DB: forgejo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sso-network
+
+  # Dex OIDC Provider
+  dex:
+    image: ghcr.io/dexidp/dex:v2.36.0
+    volumes:
+      - ./dex/config/local-config.yaml:/etc/dex/config.yaml:ro
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    environment:
+      - DEX_ISSUER=https://dex.local/dex
+    networks:
+      - sso-network
+
+  # Forgejo Git Service
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:1.20
+    environment:
+      - FORGEJO__security__INSTALL_LOCK=true
+      - FORGEJO__database__DB_TYPE=postgres
+      - FORGEJO__database__HOST=postgres:5432
+      - FORGEJO__database__NAME=forgejo
+      - FORGEJO__database__USER=forgejo
+      - FORGEJO__database__PASSWD=GVVX0pp3Z4UKo
+      - FORGEJO__server__DOMAIN=forgejo.local
+      - FORGEJO__server__ROOT_URL=https://forgejo.local
+      - FORGEJO__oauth2__ENABLED=true
+      - FORGEJO__oauth2__JWT_SECRET=SIGVJfuwHVRnQ+rrhRoKzw7gExdOZLGVVX0pp3Z4UKo=
+      - FORGEJO__oauth2__SKIP_TLS_VERIFY=true  # Added
+    volumes:
+      - forgejo_data:/data
+    depends_on:
+      - postgres
+    networks:
+      - sso-network
+
+  # Grafana for SSO
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Dex
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=grafana_secret
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://dex.local/dex/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://dex.local/dex/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://dex.local/dex/userinfo
+      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://grafana.local/login
+      - GF_SERVER_ROOT_URL=https://grafana.local
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true  # Added
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - sso-network
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    volumes:
+      - ./prometheus/local-prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    networks:
+      - sso-network
+
+  # Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    volumes:
+      - ./alertmanager/local-config.yml:/etc/alertmanager/config.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/config.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - sso-network
+
+  # Node Exporter
+  nodeexporter:
+    image: prom/node-exporter:v1.7.0
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    networks:
+      - sso-network
+
+  # cAdvisor
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - sso-network
+
+  # Pushgateway
+  pushgateway:
+    image: prom/pushgateway:v1.6.2
+    networks:
+      - sso-network
